@@ -51,7 +51,7 @@ class DashboardData{
     }
 
     public function getTotalBookings() {
-        $sql = "SELECT COUNT(*) as total FROM booking";
+        $sql = "SELECT COUNT(*) as total FROM booking_tb";
         $result = $this->conn->query($sql);
         return $result->fetch_assoc()['total'] ?? 0;   
     }
@@ -75,7 +75,7 @@ class DashboardData{
         $limit = (int)$limit;
 
         $sql = "SELECT booking_id, customer_name AS customer, services_name, booking_status
-                FROM booking 
+                FROM booking_tb
                 LEFT JOIN  customers ON customer_id 
                 LEFT JOIN services ON  service_id 
                 ORDER BY booking_id DESC 
@@ -96,6 +96,10 @@ if (isset($_GET['delete_id'])) {
     header("Location: ../page/admin_dashboard.php?deleted=1");
     exit();
 }
+
+//=========== Include Views ===========
+
+include '../views/dashboard.php';
 
 // ✅ Fetch All DATA
 $inquiries = $inquiry->getAll();

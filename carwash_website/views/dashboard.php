@@ -1,254 +1,193 @@
 <?php
-    include 'nav/topnav.php';
-    include 'nav/server_sidebar.php';
+session_start(); // ✅ Always start session at the very top
+include '../model/server.php';
+include '../views/nav/topnav.php';
+include '../views/nav/server_sidebar.php';
+include '../views/nav/server_footer.php';
+// ================== Database Class ==================
+class Dashboard {
+    private $host = "localhost";
+    private $user = "root";
+    private $pass = "";
+    private $dbname = "carwash";
+    public $conn;
 
-    require_once '../model/server.php';
+    public function __construct() {
+        $this->conn = new mysqli($this->host, $this->user, $this->pass, $this->dbname);
+        if ($this->conn->connect_error) {
+            die("Connection failed: " . $this->conn->connect_error);
+        }
+    }
+}
 
-    // Instantiate the Connector class
-    $connector = new Connector();
+// ================== Inquiry Manager Class ==================
+class Inquiries {
+    private $conn;
 
-    // Fetch all bookings that are pending approval
-    $sql = "SELECT booking_id, booking_fullname, booking_email, booking_number, booking_date, booking_time FROM booking_tb WHERE booking_status = 'pending'";
+    public function __construct($dbConn) {
+        $this->conn = $dbConn;
+    }
 
-    $bookings = $connector->executeQuery($sql);
+    public function getAll() {
+        $sql = "SELECT * FROM contact_tb ORDER BY cont_id DESC";
+        $result = $this->conn->query($sql);
+        return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    }
+
+    public function delete($id) {
+        $stmt = $this->conn->prepare("DELETE FROM contact_tb WHERE cont_id = ?");
+        $stmt->bind_param("i", $id);
+        return $stmt->execute();
+    }
+}
+
+// ================== Initialize Classes ==================
+$db = new Database();
+$inquiry = new Inquiry($db->conn);
+
+// ✅ Handle Deletion
+if (isset($_GET['delete_id'])) {
+    $inquiry->delete((int) $_GET['delete_id']);
+    header("Location: ../page/admin_dashboard.php?deleted=1");
+    exit();
+}
+
+// ✅ Fetch All Inquiries
+$inquiries = $inquiry->getAll();
 ?>
-    <!-- Begin Page Content -->
-                <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-                        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
-                                class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
-                    </div>
+<?php
+class DashboardPage {
+    public function render() {
+        ?>
+            <!-- Main Content -->
+            <main class="flex-grow-1 p-4">
+                <h2 class="fw-bold mb-4">📊 Dashboard Overview</h2>
 
-                    <!-- Content Row -->
-                    <div class="row">
-
-                        <!-- Earnings (Monthly) Card Example -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-primary shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                                Earnings (Monthly)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$40,000</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Earnings (Monthly) Card Example -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-success shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Earnings (Annual)</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">$215,000</div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Earnings (Monthly) Card Example -->
-                        <div class="col-xl-3 col-md-6 mb-4">
-                            <div class="card border-left-info shadow h-100 py-2">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tasks
-                                            </div>
-                                            <div class="row no-gutters align-items-center">
-                                                <div class="col-auto">
-                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">50%</div>
-                                                </div>
-                                                <div class="col">
-                                                    <div class="progress progress-sm mr-2">
-                                                        <div class="progress-bar bg-info" role="progressbar"
-                                                            style="width: 50%" aria-valuenow="50" aria-valuemin="0"
-                                                            aria-valuemax="100"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pending Requests Card Example -->
-                        <?php if (!empty($bookings)): ?>
-                            <div class="col-xl-3 col-md-6 mb-4">
-                                <div class="card border-left-warning shadow h-100 py-2">
-                                    <div class="card-body">
-                                    
-                                        <div class="row no-gutters align-items-center">
-                                            <div class="col mr-2">
-                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                                    Pending Requests
-                                                </div>
-                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $bookings[0]['booking_id']; ?></div>
-                                            </div>
-                                            <div class="col-auto">
-                                                <i class="fas fa-comments fa-2x text-gray-300"></i>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                </div>
-                            </div>
-                    <?php endif; ?>
-
-                    </div>
-
-                    <!-- Content Row -->
-
-                    <div class="row">
-
-                        <!-- Area Chart -->
-                        <div class="col-xl-8 col-lg-7">
-                            <div class="card shadow mb-4">
-                                <!-- Card Header - Dropdown -->
-                                <div
-                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Earnings Overview</h6>
-                                    <div class="dropdown no-arrow">
-                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                            aria-labelledby="dropdownMenuLink">
-                                            <div class="dropdown-header">Dropdown Header:</div>
-                                            <a class="dropdown-item" href="#">Action</a>
-                                            <a class="dropdown-item" href="#">Another action</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a class="dropdown-item" href="#">Something else here</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Card Body -->
-                                <div class="card-body">
-                                    <div class="chart-area">
-                                        <canvas id="myAreaChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pie Chart -->
-                        <div class="col-xl-4 col-lg-5">
-                            <div class="card shadow mb-4">
-                                <!-- Card Header - Dropdown -->
-                                <div
-                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                                    <h6 class="m-0 font-weight-bold text-primary">Revenue Sources</h6>
-                                    <div class="dropdown no-arrow">
-                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
-                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
-                                            aria-labelledby="dropdownMenuLink">
-                                            <div class="dropdown-header">Dropdown Header:</div>
-                                            <a class="dropdown-item" href="#">Action</a>
-                                            <a class="dropdown-item" href="#">Another action</a>
-                                            <div class="dropdown-divider"></div>
-                                            <a class="dropdown-item" href="#">Something else here</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Card Body -->
-                                <div class="card-body">
-                                    <div class="chart-pie pt-4 pb-2">
-                                        <canvas id="myPieChart"></canvas>
-                                    </div>
-                                    <div class="mt-4 text-center small">
-                                        <span class="mr-2">
-                                            <i class="fas fa-circle text-primary"></i> Direct
-                                        </span>
-                                        <span class="mr-2">
-                                            <i class="fas fa-circle text-success"></i> Social
-                                        </span>
-                                        <span class="mr-2">
-                                            <i class="fas fa-circle text-info"></i> Referral
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                <!-- Stats -->
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="card card-custom text-center p-3">
+                            <h5>Total Bookings</h5>
+                            <h3>124</h3>
                         </div>
                     </div>
-
-                    <!-- Content Row -->
-                    <div class="row">
-
-                        <!-- Content Column -->
-
-                        <div class="col-xl-10 col-lg-6 mb-4">
-
-                        <div class="col-xl-10 col-lg-6 mb-4 ">
-
-
-                            <!-- Project Card Example -->
-                            <div class="card shadow mb-4">
-                                <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Projects</h6>
-                                </div>
-                                <div class="card-body">
-                                    <h4 class="small font-weight-bold">Server Migration <span
-                                            class="float-right">20%</span></h4>
-                                    <div class="progress mb-4">
-                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 20%"
-                                            aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <h4 class="small font-weight-bold">Sales Tracking <span
-                                            class="float-right">40%</span></h4>
-                                    <div class="progress mb-4">
-                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 40%"
-                                            aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <h4 class="small font-weight-bold">Customer Database <span
-                                            class="float-right">60%</span></h4>
-                                    <div class="progress mb-4">
-                                        <div class="progress-bar" role="progressbar" style="width: 60%"
-                                            aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <h4 class="small font-weight-bold">Payout Details <span
-                                            class="float-right">80%</span></h4>
-                                    <div class="progress mb-4">
-                                        <div class="progress-bar bg-info" role="progressbar" style="width: 80%"
-                                            aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                    <h4 class="small font-weight-bold">Account Setup <span
-                                            class="float-right">Complete!</span></h4>
-                                    <div class="progress">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"
-                                            aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="col-md-3">
+                        <div class="card card-custom text-center p-3">
+                            <h5>Revenue (This Month)</h5>
+                            <h3>$5,430</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-custom text-center p-3">
+                            <h5>Active Customers</h5>
+                            <h3>86</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-custom text-center p-3">
+                            <h5>Pending Messages</h5>
+                            <h3>7</h3>
                         </div>
                     </div>
                 </div>
-                <!-- /.container-fluid -->
 
-            </div>
-            <!-- End of Main Content -->
+                <!-- Charts -->
+                <div class="row g-4 mt-4">
+                    <div class="col-md-8">
+                        <div class="card card-custom p-3">
+                            <h5 class="fw-bold">📈 Revenue Trends</h5>
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card card-custom p-3">
+                            <h5 class="fw-bold">🚗 Popular Services</h5>
+                            <canvas id="serviceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
 
- <?php
-    include 'nav/server_footer.php';
- ?>
+                <!-- Recent Bookings & Reviews -->
+                <div class="row g-4 mt-4">
+                    <div class="col-md-6">
+                        <div class="card card-custom p-3">
+                            <h5 class="fw-bold">📝 Recent Bookings</h5>
+                            <table class="table table-striped align-middle">
+                                <thead class="table-dark">
+                                    <tr><th>ID</th><th>Customer</th><th>Service</th><th>Status</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>#1001</td><td>Maria S.</td><td>Interior Cleaning</td><td><span class="badge bg-success">Completed</span></td></tr>
+                                    <tr><td>#1002</td><td>John D.</td><td>Full Wash</td><td><span class="badge bg-warning text-dark">Pending</span></td></tr>
+                                    <tr><td>#1003</td><td>Alex T.</td><td>Wax + Polish</td><td><span class="badge bg-info text-dark">In Service</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-custom p-3">
+                            <h5 class="fw-bold">⭐ Latest Reviews</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">"Amazing service!" – <b>Maria</b> ⭐⭐⭐⭐⭐</li>
+                                <li class="list-group-item">"Fast & affordable." – <b>John</b> ⭐⭐⭐⭐</li>
+                                <li class="list-group-item">"Best car wash in town!" – <b>Alex</b> ⭐⭐⭐⭐⭐</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card card-custom p-3 mt-4">
+                    <h5 class="fw-bold">⚡ Quick Actions</h5>
+                    <div class="d-flex flex-wrap gap-3">
+                        <button class="action-btn btn-add"><i class="fa-solid fa-plus"></i> Add Booking</button>
+                        <button class="action-btn btn-service"><i class="fa-solid fa-plus-circle"></i> Add Service</button>
+                        <button class="action-btn btn-reply"><i class="fa-solid fa-reply"></i> Reply Message</button>
+                        <button class="action-btn btn-report"><i class="fa-solid fa-download"></i> Generate Report</button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+        <script>
+        // Revenue Chart
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"],
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: [3000, 4200, 3500, 5000, 6200, 5800, 7000, 7430],
+                    borderColor: '#d4a938',
+                    backgroundColor: 'rgba(212,169,56,0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            }
+        });
+
+        // Services Chart
+        const ctx2 = document.getElementById('serviceChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: ["Full Wash", "Interior", "Wax + Polish", "Detailing"],
+                datasets: [{
+                    data: [40, 25, 20, 15],
+                    backgroundColor: ["#1e90ff","#28a745","#d4a938","#ff4d4d"]
+                }]
+            }
+        });
+        </script>
+        </body>
+        </html>
+        <?php
+    }
+}
+
+$page = new DashboardPage();
+$page->render();
+?>

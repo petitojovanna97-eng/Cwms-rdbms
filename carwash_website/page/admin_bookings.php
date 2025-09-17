@@ -5,7 +5,7 @@ class Database {
     private $host = "localhost";
     private $user = "root";
     private $pass = "";
-    private $dbname = "cwms_db";
+    private $dbname = "carwash";
     public $conn;
 
     public function __construct() {

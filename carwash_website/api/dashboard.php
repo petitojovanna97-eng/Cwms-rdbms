@@ -1,5 +1,5 @@
 <?php
-require_once '../model/Connector.php';
+require_once '../model/server.php';
 $conn = new Connector();
 
 // Example queries

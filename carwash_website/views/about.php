@@ -107,15 +107,6 @@
 
     <!-- Team Section -->
     <section id="team" class="team section">
-
-      <!-- Section Title -->
-      <div class="container section-title" data-aos="fade-up">
-        <h2>Our Team</h2>
-      </div><!-- End Section Title -->
-
-      <!-- Team Section -->
-    <section id="team" class="team section">
-                
     <!-- Section Title -->
     <div class="container section-title" data-aos="fade-up">
       <h2>Our Team</h2>
